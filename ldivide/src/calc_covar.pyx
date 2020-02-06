@@ -20,7 +20,7 @@ cpdef calc_covar(haplos, int32_t [::1] autocovars, double theta, int32_t window_
 
     cdef:
         int i, j, j1, j2, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
-        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj2
+        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj2, rsq
 
     half_window_size = int(window_size / 2)
     haps = haplos.values
@@ -70,8 +70,12 @@ cpdef calc_covar(haplos, int32_t [::1] autocovars, double theta, int32_t window_
                 D = f11 - f1*f2
                 Ds2 = (thetas*D)
                 Ds2 = Ds2 * Ds2
+                rsq = Ds2 / (aj1 * aj2)
 
-                outvec_view[i] += Ds2 / (aj1 * aj2)
+                if j1 != j2:
+                    outvec_view[i] += (2 * rsq) # times two due to symmetry
+                else:
+                    outvec_view[i] += rsq # times two due to symmetry
 
 
     for i in range(half_window_size, len_haps - half_window_size):
@@ -99,8 +103,12 @@ cpdef calc_covar(haplos, int32_t [::1] autocovars, double theta, int32_t window_
                 D = f11 - f1*f2
                 Ds2 = (thetas*D)
                 Ds2 = Ds2 * Ds2
+                rsq = Ds2 / (aj1 * aj2)
 
-                outvec_view[i] += Ds2 / (aj1 * aj2)
+                if j1 != j2:
+                    outvec_view[i] += (2 * rsq) # times two due to symmetry
+                else:
+                    outvec_view[i] += rsq # times two due to symmetry
 
 
     for i in range(len_haps - half_window_size, len_haps):
@@ -132,4 +140,10 @@ cpdef calc_covar(haplos, int32_t [::1] autocovars, double theta, int32_t window_
                 Ds2 = (thetas*D)
                 Ds2 = Ds2 * Ds2
 
-                outvec_view[i] += Ds2 / (aj1 * aj2)
+                rsq = Ds2 / (aj1 * aj2)
+
+                if j1 != j2:
+                    outvec_view[i] += (2 * rsq) # times two due to symmetry
+                else:
+                    outvec_view[i] += rsq # times two due to symmetry
+

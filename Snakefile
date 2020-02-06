@@ -37,11 +37,15 @@ chromosomes = ["chr" + str(i) for i in range(1, 23)]
 to_regex = lambda vs: "|".join([str(v) for v in vs])
 
 wildcard_constraints:
-    chromosome = to_regex(chromosomes)
+    chromosome = to_regex(chromosomes),
+    population = to_regex(populations),
 
+window_size = 5000
 
 rule all:
     input:
-        expand("{prefix}/1kg/{chromosome}.vcf.gz", prefix=prefix, chromosome=chromosomes),
-        expand("{prefix}/1kg/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
+        # expand("{prefix}/1kg/{chromosome}.vcf.gz", prefix=prefix, chromosome=chromosomes),
+        # expand("{prefix}/1kg/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop),
+        # expand("{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
+        expand("{prefix}/1kg/vector/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
 

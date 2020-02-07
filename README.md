@@ -21,7 +21,7 @@ ldivide works in two steps:
 - it slides a window over the SNPs to compute the summed R-squared statistic of
 each SNP to those within the window. This leads to a vector of
 association-scores, one per SNP.
-- the vector of association scores are smoothed with low-pass filters of
+- the vector of association scores is smoothed with low-pass filters of
   increasing width until the desired number of breakpoints are found
 
 # Public results

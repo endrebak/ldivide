@@ -31,6 +31,8 @@ rule covar_self_vs_self:
         theta = "{prefix}/theta/{chromosome}/{population}.txt"
     output:
         "{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz"
+    benchmark:
+        "{prefix}/benchmark/1kg/autocorr/{population}/{chromosome}.tsv.gz"
     run:
         theta = float(open(input.theta).readline().strip())
         print(theta)
@@ -53,6 +55,8 @@ rule vector:
         theta = "{prefix}/theta/{chromosome}/{population}.txt"
     output:
         "{prefix}/1kg/vector/{population}/{chromosome}.tsv.gz"
+    benchmark:
+        "{prefix}/benchmark/1kg/vector/{population}/{chromosome}.tsv.gz"
     run:
         theta = float(open(input.theta).readline().strip())
 
@@ -69,6 +73,7 @@ rule vector:
         outvec = calc_covar(df, autocovars, theta, window_size)
 
         pd.Series(outvec).to_csv(output[0], sep="\t", index=False, header=False)
+
 
 
 

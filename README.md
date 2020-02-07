@@ -1,7 +1,9 @@
 # ldivide
 
 ldivide quickly and efficiently finds approximately independent LD-blocks from
-genetic data, using only VCF/BCF files.
+genetic data, using only VCF/BCF files. It is ethnically inclusive in that it
+relies on no previous data and has no parameters, hidden or otherwise, which
+would favor already well-studied populations
 
 # Rationale
 

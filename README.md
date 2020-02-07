@@ -1,9 +1,11 @@
 # ldivide
 
-ldivide quickly and efficiently finds approximately independent LD-blocks from
-genetic data, using only VCF/BCF files. It is ethnically inclusive in that it
-relies on no previous data and has no parameters, hidden or otherwise, which
-would favor already well-studied populations
+ldivide efficiently finds independent LD-blocks from genetic data, using only
+VCF/BCF files. It is ethnically inclusive in that it relies on no previous data
+and has no parameters, hidden or otherwise, which would favor already
+well-studied populations.
+
+It is a reimagined implementation of ldetect.
 
 # Rationale
 
@@ -11,6 +13,16 @@ We want LD-blocks to be computed a priori, so results incorporating LD
 information between different analyses are comparable. The naive way to do this
 is to segment the genome into non-overlapping blocks, which will split regions
 in strong LD over multiple blocks.
+
+# Method
+
+ldivide works in two steps:
+
+- it slides a window over the SNPs to compute the summed R-squared statistic of
+each SNP to those within the window. This leads to a vector of
+association-scores, one per SNP.
+- the vector of association scores are smoothed with low-pass filters of
+  increasing width until the desired number of breakpoints are found
 
 # Public results
 

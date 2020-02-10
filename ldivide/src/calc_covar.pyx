@@ -36,7 +36,6 @@ cpdef calc_covar(haplos, double [::1] autocovars, double theta, int32_t window_s
     thetas = (1-theta)*(1-theta)
 
     # cdef long[:] allpos_view
-    cdef long[:] g1_view, g2_view
     cdef int8_t[:, :] haps_view
     cdef double[::1] outvec_view
 

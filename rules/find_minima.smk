@@ -9,7 +9,7 @@ import numpy as np
 
 def apply_filter_get_minima(vector, width):
 
-    start = time() 
+    start = time()
     a = sig.get_window('hanning', 2 * (width + 1))
 
     ga = filters.convolve1d(vector, a/a.sum())

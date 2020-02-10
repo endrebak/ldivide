@@ -1,11 +1,16 @@
-variant_url = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.{chromosome}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+variant_url_hg38 = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.{chromosome}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+variant_url_hg19 = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20110521/ALL.{chromosome}.phase1_release_v3.20101123.snps_indels_svs.genotypes.vcf.gz" 
+
+variants = {"hg38": variant_url_hg38,
+            "hg19": variant_url_hg19}
 
 rule fetch_variants:
     output:
-        "{prefix}/1kg/{chromosome}.vcf.gz"
+        f"{variant_prefix}/1kg/{genome}/{{chromosome}}.vcf.gz"
     resources:
         instances = 1
     run:
+        variant_url = variants[genome]
         url = variant_url.format(chromosome=wildcards.chromosome)
         shell("axel {url} -q -o {output[0]}")
 
@@ -15,14 +20,14 @@ rule index_variants:
     input:
         rules.fetch_variants.output[0]
     output:
-        "{prefix}/1kg/{chromosome}.vcf.gz.tbi"
+        f"{variant_prefix}/1kg/{genome}/{{chromosome}}.vcf.gz.tbi"
     shell:
         "tabix {input[0]}"
 
 
 rule vcf_to_bed:
     input:
-        rules.fetch_variants.output
+        rules.fetch_variants.output[0]
     output:
         "{prefix}/1kg/{chromosome}.bed"
     run:

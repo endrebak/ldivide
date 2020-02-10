@@ -7,6 +7,7 @@ import pandas as pd
 from glob import glob
 
 pop = "CEU"
+genome = "hg19"
 
 def pop_as_list():
     # pop = config["population"]
@@ -24,12 +25,13 @@ def pop_as_list():
 populations = pop_as_list()
 
 
+variant_prefix = "/mnt/work/endrebak/1kg"
 sample_info = "data/sample_info.tsv"
 
 for rule in glob("rules/*.smk"):
     include: rule
 
-prefix = "/mnt/work/endrebak/ldivide"
+prefix = "/mnt/work/endrebak/ldivide/hg19"
 
 chromosomes = ["chr" + str(i) for i in range(1, 23)]
 

@@ -9,20 +9,31 @@ It is a reimagined implementation of ldetect.
 
 # Rationale
 
-We want LD-blocks to be computed a priori, so results incorporating LD
-information between different analyses are comparable. The naive way to do this
-is to segment the genome into non-overlapping blocks, which will split regions
-in strong LD over multiple blocks.
+To make analyses of GWAS results comparable we want LD-blocks to be computed
+a priori.
+
+A naive and perhaps the most common way to predefine LD-blocks is to split the
+genome into non-overlapping segments of equal size. This is likely to split
+regions with strong association signals into multiple blocks.
 
 # Method
 
-ldivide works in two steps:
+ldivide works in three steps:
 
 - it slides a window over the SNPs to compute the summed R-squared statistic of
 each SNP to those within the window. This leads to a vector of
 association-scores, one per SNP.
 - the vector of association scores is smoothed with low-pass filters of
   increasing width until the desired number of breakpoints are found
+- a local search is done within the breakpoints found above to find true local
+  minima
+
+# Todo
+
+<!-- - Use decimal representation of haplotypes to efficiently store results: -->
+
+
+<!-- - Iterate over file with windows of 5000 -->
 
 # Public results
 
@@ -48,17 +59,7 @@ computing association signals. In the supplementaries, we discuss the downsides
 of this, but the main points are that the genetic recombination data have
 several problems:
 
-* they are based on heuristics and unproven assumptions
 * they are computed on old data
 * they are not computed for all populations
-* they are not reproducible; the data are provided as-is, without any way to
-  understand exactly how they were made
-
-Furthermore, ldetect itself had several problems also discussed in the
-supplementaries. The most important of these was that
-
-* the provided ldetect code does not work on real world data, even after arduous setup
-* the published datasets contain errors
-* the code contains logical errors
-* the code is slow
-* the method relies on genetic recombination data
+* they are not easily reproducible; the data are provided as-is without the code
+  which produced them

@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
-
 import sys, math, gzip
 import numpy as np
 import pandas as pd
@@ -16,7 +13,7 @@ cimport cython
 @cython.wraparound(False)
 @cython.initializedcheck(False)
 @cython.cdivision(True)
-cpdef find_local_minima(haplos, double [::1] autocovars, double theta):
+cpdef calc_covar(haplos, double [::1] autocovars, double theta):
 
     cdef:
         int mid_x, mid1, mid2, i, j, k, len_haps, width_haps
@@ -35,11 +32,6 @@ cpdef find_local_minima(haplos, double [::1] autocovars, double theta):
 
     rowvec = np.zeros(len_haps)
     rowvec_view = rowvec
-
-    # for mid_x in range(len(mids_between_breakpoints) - 1):
-
-    #     mid1 = mids_between_breakpoints[mid_x]
-    #     mid2 = mids_between_breakpoints[mid_x + 1]
 
     for i in range(0, len_haps):
         for j in range(i + 1, len_haps):

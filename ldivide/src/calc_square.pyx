@@ -1,21 +1,4 @@
-#!/usr/bin/env python3
-#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
-import sys, math, gzip
-import numpy as np
-import pandas as pd
-
-from time import time
-
-from libc.math cimport exp, fabs
-from libc.stdint cimport int32_t, int8_t
-
-cimport cython
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-@cython.cdivision(True)
 cpdef calc_covar(haplos, double [::1] autocovars, int32_t [::1] mids_between_breakpoints, double theta):
 
     cdef:

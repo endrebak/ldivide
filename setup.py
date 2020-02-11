@@ -28,7 +28,10 @@ extensions = [
         language="c"),
     Extension(
         "ldivide.src.calc_autocovar", ["ldivide/src/calc_autocovar.pyx"],
-        language="c")
+        language="c"),
+    Extension(
+        "ldivide.src.calc_square", ["ldivide/src/calc_square.pyx"],
+        language="c"),
     # Extension(
     #     "ldetect2.src.matrix_to_vector", ["ldetect2/src/matrix_to_vector.pyx"],
     #     language="c"),

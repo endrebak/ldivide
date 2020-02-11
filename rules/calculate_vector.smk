@@ -27,10 +27,10 @@ rule theta:
 
 rule covar_self_vs_self:
     input:
-        haplos = "{prefix}/1kg/{population}/{chromosome}.tsv.gz",
+        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
         theta = "{prefix}/theta/{chromosome}/{population}.txt"
     output:
-        "{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz"
+        "{prefix}/1kg/autocorr/{population}/{chromosome}.pq"
     benchmark:
         "{prefix}/benchmark/1kg/autocorr/{population}/{chromosome}.tsv.gz"
     run:
@@ -38,32 +38,34 @@ rule covar_self_vs_self:
         print(theta)
 
         # autocovars = []
-        df = pd.read_table(input[0], sep="\t", dtype=np.int8, header=None).values.copy(order="C")
+        # df = pd.read_table(input.haplos, sep="\t", dtype=np.int8, header=None).values.copy(order="C")
+        df = pd.read_parquet(input.haplos).values
         # print(df.head())
         print("Done reading!")
         outvec = calc_autocovar(df, theta)
 
         # outvec = np.concatenate(autocovars)
 
-        pd.Series(outvec).to_csv(output[0], sep="\t", index=False, header=False)
+        pd.Series(outvec).to_frame().to_parquet(output[0])
+
 
 
 rule vector:
     input:
-        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz",
-        haplos = "{prefix}/1kg/{population}/{chromosome}.tsv.gz",
+        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq",
+        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
         theta = "{prefix}/theta/{chromosome}/{population}.txt"
     output:
-        "{prefix}/1kg/vector/{population}/{chromosome}.tsv.gz"
+        "{prefix}/1kg/vector/{population}/{chromosome}.pq"
     benchmark:
         "{prefix}/benchmark/1kg/vector/{population}/{chromosome}.tsv.gz"
     run:
         theta = float(open(input.theta).readline().strip())
 
         nrows = None
-        df = pd.read_table(input.haplos, sep="\t", dtype=np.int8, header=None, nrows=nrows).values.copy(order="C")
+        df = pd.read_parquet(input.haplos).values.copy(order="C")
         print("read haplos")
-        autocovars = pd.read_table(input.autocorr, sep="\t", header=None, nrows=nrows, squeeze=True)
+        autocovars = pd.read_parquet(input.autocorr, squeeze=True)
         print("read autocovars")
         # print(autocovars)
         autocovars = autocovars.values

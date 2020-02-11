@@ -48,5 +48,5 @@ rule all:
         # expand("{prefix}/1kg/{chromosome}.vcf.gz", prefix=prefix, chromosome=chromosomes),
         # expand("{prefix}/1kg/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop),
         # expand("{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
-        expand("{prefix}/1kg/vector/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
+        expand("{prefix}/1kg/vector/{population}/{chromosome}.pq", prefix=prefix, chromosome=chromosomes, population=pop)
 

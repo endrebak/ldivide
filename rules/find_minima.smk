@@ -2,6 +2,8 @@ import math
 import bisect
 from time import time
 
+from ldivide.src.calc_square import find_local_minima
+
 import scipy.ndimage.filters as filters
 import scipy.signal as sig
 
@@ -23,18 +25,19 @@ def apply_filter_get_minima(vector, width):
 
 rule find_minima:
     input:
-        "{prefix}/1kg/vector/{population}/{chromosome}.tsv.gz"
+        "{prefix}/1kg/vector/{population}/{chromosome}.pq"
     output:
-        "{prefix}/1kg/minima/{population}/{chromosome}.tsv.gz"
+        "{prefix}/1kg/minima/{population}/{chromosome}.pq"
     run:
         f = input[0]
-        vector = pd.read_table(f, sep="\t", header=None, names=["Value"], squeeze=True)
+        vector = pd.read_parquet(f, names=["Value"], squeeze=True)
 
         n_snps_between_breakpoints = 5000
 
         n_bpoints = int(math.ceil( len(vector) / n_snps_between_breakpoints - 1 ))
 
-        """Increase width until less than bp, then do linear searches around that point."""
+        """First do linear search to find max filter width, then do binary search to find filter width that
+gets you close to desired number of breakpoints."""
 
         # nb_minima = int(1e6)
         search_val = 100
@@ -73,7 +76,40 @@ rule find_minima:
                 else:
                     break
 
+        pd.DataFrame({"Minima": minima}).to_parquet(output[0])
 
 
 
 
+rule find_local_minima:
+    input:
+        minima = "{prefix}/1kg/minima/{population}/{chromosome}.pq",
+        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
+        theta = "{prefix}/theta/{chromosome}/{population}.txt",
+        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq",
+    output:
+        "{prefix}/1kg/local_minima/{population}/{chromosome}.pq"
+    run:
+        theta = float(open(input.theta).readline().strip())
+        haplos = pd.read_parquet(input.haplos)
+        minima = pd.read_parquet(input.haplos)
+        autocovars = pd.read_parquet(input.autocorr, squeeze=True)
+
+        diff_last = len(autocovars) - a[-1]
+
+        a = minima.squeeze().values
+        midpoints = np.r_[0, a + np.r_[(np.diff(a)/2).astype(int), diff_last]]
+
+        new_breakpoints = []
+
+        for m1, m2 in zip(midpoints, midpoints[1:]):
+
+            haps = haplos.iloc[m1:m2]
+            auto = autocovars.iloc[m1:m2]
+
+            new_breakpoint = find_local_minima(haps, autocovars, theta)
+            new_breakpoints.append(new_breakpoint)
+
+        new_breakpoints = np.array(new_breakpoints)
+
+        pd.DataFrame({"LocalMinima": new_breakpoints, "WindowMinima": minima}).to_csv(output[0])

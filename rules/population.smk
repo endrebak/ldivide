@@ -42,6 +42,6 @@ rule subset_on_population:
         samples = rules.individuals_in_reference_panel.output.samples,
         index = rules.index_variants.output[0]
     output:
-        "{prefix}/1kg/{population}/{chromosome}.tsv.gz"
+        "{prefix}/1kg/{population}/{chromosome}.pq"
     shell:
-        r'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} | bcftools query -f "[%GT\t]\n" | tr "|" "\t" | grep -vP "[2-9]" | gzip > {output[0]}'
+        r'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} | bcftools query -f "%POS\t[%GT\t]\n" | tr "|" "\t" | python to_parquet.py {output[0]}'

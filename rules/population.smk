@@ -44,4 +44,4 @@ rule subset_on_population:
     output:
         "{prefix}/1kg/{population}/{chromosome}.tsv.gz"
     shell:
-        'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} -H | cut -f 10- | tr "|" "\\t" | gzip > {output[0]}'
+        r'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} | bcftools query -f "[%GT\t]\n" | tr "|" "\t" | grep -vP "[2-9]" | gzip > {output[0]}'

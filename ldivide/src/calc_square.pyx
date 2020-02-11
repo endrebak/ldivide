@@ -25,8 +25,11 @@ cpdef calc_covar(haplos, double [::1] autocovars, int32_t [::1] mids_between_bre
 
     haps_view = haplos
     thetas = (1-theta)*(1-theta)
-    outvec = np.zeros(len_haps)
-    outvec_view = outvec
+    colvec = np.zeros(len_haps)
+    colvec_view = colvec
+
+    rowvec = np.zeros(len_haps)
+    rowvec_view = rowvec
 
     for mid_x in range(len(mids_between_breakpoints) - 1):
 
@@ -37,7 +40,7 @@ cpdef calc_covar(haplos, double [::1] autocovars, int32_t [::1] mids_between_bre
         aj = autocovars[j]
 
         for i in range(mid1, mid2):
-            for j in range(i + 1, i):
+            for j in range(i + 1, mid2):
 
                 n11, n01, n10 = 0, 0, 0
                 for k in range(len_g1_int):
@@ -56,4 +59,16 @@ cpdef calc_covar(haplos, double [::1] autocovars, int32_t [::1] mids_between_bre
                 Ds2 = Ds2 * Ds2
                 rsq = Ds2 / (aj1 * aj2)
 
-                outvec[j] += rsq
+                rowvec_view[i] += rsq
+                colvec_view[j] += rsq
+
+            if i > 1:
+                rowvec_view[i] = rowvec_view[i] + rowvec_view[i-1] - colvec_view[i-1]
+
+        for i in range(mid1, mid2):
+            if i > 0:
+                rowvec_view[i] = rowvec_view[i] / (i * (len_haps - i))
+            else:
+                rowvec_view[i] = rowvec_view[i] / len_haps
+
+

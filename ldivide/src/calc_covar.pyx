@@ -109,7 +109,7 @@ cpdef calc_covar(haplos, double [::1] autocovars, double theta, int32_t window_s
             if j1 != j2:
                 outvec_view[i] += (2 * rsq) # times two due to symmetry
             else:
-                outvec_view[i] += rsq # times two due to symmetry
+                outvec_view[i] += rsq 
 
 
     for i in range(len_haps - half_window_size, len_haps):

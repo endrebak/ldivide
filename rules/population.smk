@@ -43,5 +43,7 @@ rule subset_on_population:
         index = rules.index_variants.output[0]
     output:
         "{prefix}/1kg/{population}/{chromosome}.pq"
+    # resources:
+    #     instances = 1
     shell:
-        r'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} | bcftools query -f "%POS\t[%GT\t]\n" | tr "|" "\t" | python to_parquet.py {output[0]}'
+        r'bcftools view --threads 48 --force-samples -S {input.samples} {input.variants} | bcftools query -f "%POS\t[%GT\t]\n" | tr "|" "\t" | python to_parquet.py {output[0]} {input.samples}'

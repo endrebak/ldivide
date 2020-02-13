@@ -8,7 +8,7 @@ rule theta:
     output:
         "{prefix}/theta/{chromosome}/{population}.txt"
     run:
-        inds = pd.read_table(input[0], header=None, squeeze=True).to_list()
+        inds = pd.read_table(input[0], header=None).squeeze().to_list()
 
         haps= list()
         nind_int = len(inds)
@@ -46,7 +46,9 @@ rule covar_self_vs_self:
 
         # outvec = np.concatenate(autocovars)
 
-        pd.Series(outvec).to_frame().to_parquet(output[0])
+        df = pd.Series(outvec).to_frame()
+        df.columns = df.columns.astype(str)
+        df.to_parquet(output[0])
 
 
 
@@ -63,18 +65,24 @@ rule vector:
         theta = float(open(input.theta).readline().strip())
 
         nrows = None
+        print("Reading haplos")
         df = pd.read_parquet(input.haplos).values.copy(order="C")
         print("read haplos")
-        autocovars = pd.read_parquet(input.autocorr, squeeze=True)
+        autocovars = pd.read_parquet(input.autocorr).squeeze()
         print("read autocovars")
         # print(autocovars)
         autocovars = autocovars.values
         # print(autocovars)
         # raise
+        print(df)
+        print(autocovars)
 
         outvec = calc_covar(df, autocovars, theta, window_size)
 
-        pd.Series(outvec).to_csv(output[0], sep="\t", index=False, header=False)
+        df = pd.DataFrame({"Covars": outvec})
+        df.columns = df.columns.astype(str)
+
+        df.to_parquet(output[0])
 
 
 

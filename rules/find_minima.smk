@@ -30,7 +30,8 @@ rule find_minima:
         "{prefix}/1kg/minima/{population}/{chromosome}.pq"
     run:
         f = input[0]
-        vector = pd.read_parquet(f, names=["Value"], squeeze=True)
+        vector = pd.read_parquet(f).squeeze()
+        vector.name = "Value"
 
         n_snps_between_breakpoints = 5000
 
@@ -45,9 +46,11 @@ gets you close to desired number of breakpoints."""
         while True:
             print(f"Trying a search width of {search_val}", end="\n")
             minima = apply_filter_get_minima(vector, search_val)
-            print(f"Found {len(minima)} minima, searching for something greater than {n_bpoints} in initial search.")
             if len(minima) <= n_bpoints:
+                print(f"Found {len(minima)} minima, done with initial search.")
                 break
+
+            print(f"Found {len(minima)} minima, searching for something less than {n_bpoints} in initial search.")
             last_search_val = search_val
             search_val *= 2
 
@@ -92,23 +95,24 @@ rule find_local_minima:
     run:
         theta = float(open(input.theta).readline().strip())
         haplos = pd.read_parquet(input.haplos)
-        minima = pd.read_parquet(input.haplos)
-        autocovars = pd.read_parquet(input.autocorr, squeeze=True)
-
-        diff_last = len(autocovars) - a[-1]
+        minima = pd.read_parquet(input.minima)
+        autocovars = pd.read_parquet(input.autocorr).squeeze().values
 
         a = minima.squeeze().values
-        midpoints = np.r_[0, a + np.r_[(np.diff(a)/2).astype(int), diff_last]]
+        diff_last = len(autocovars) - a[-1]
+        shifted = a + np.r_[(np.diff(a)/2).astype(int), diff_last]
+        midpoints = np.r_[0, shifted]
 
         new_breakpoints = []
 
-        for m1, m2 in zip(midpoints, midpoints[1:]):
+        for i, (m1, m2) in enumerate(zip(midpoints, midpoints[1:])):
+            print(wildcards.chromosome, m1, m2, i, i/len(midpoints))
+            haps = haplos.iloc[m1:m2].values
+            auto = autocovars[m1:m2]
 
-            haps = haplos.iloc[m1:m2]
-            auto = autocovars.iloc[m1:m2]
-
-            new_breakpoint = find_local_minima(haps, autocovars, theta)
+            new_breakpoint = find_local_minima(haps, auto, theta)
             new_breakpoints.append(new_breakpoint)
+            print("Old minima", a[i], "New minima", new_breakpoint)
 
         new_breakpoints = np.array(new_breakpoints)
 

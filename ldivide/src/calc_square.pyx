@@ -13,11 +13,11 @@ cimport cython
 @cython.wraparound(False)
 @cython.initializedcheck(False)
 @cython.cdivision(True)
-cpdef calc_covar(haplos, double [::1] autocovars, double theta):
+cpdef find_local_minima(haplos, double [::1] autocovars, double theta):
 
     cdef:
-        int mid_x, mid1, mid2, i, j, k, len_haps, width_haps
-        double rowsum
+        int mid_x, mid1, mid2, i, j, k, len_haps, width_haps, n11, n10, n01
+        double rowsum, f11, f1, f2, Ds2, rsq, ai, aj, len_haps_d
         int8_t[:, :] haps_view
         double[::1] colvec_view
         double[::1] rowvec_view
@@ -29,6 +29,7 @@ cpdef calc_covar(haplos, double [::1] autocovars, double theta):
     thetas = (1-theta)*(1-theta)
     colvec = np.zeros(len_haps)
     colvec_view = colvec
+    len_haps_d = len_haps
 
     rowvec = np.zeros(len_haps)
     rowvec_view = rowvec
@@ -48,9 +49,9 @@ cpdef calc_covar(haplos, double [::1] autocovars, double theta):
                 elif haps_view[i][k] == 1 and haps_view[j][k] == 0:
                     n10 += 1
 
-            f11 = n11/len_haps
-            f1 = (n11+n10)/len_haps
-            f2 = (n11+n01)/len_haps
+            f11 = n11/len_haps_d
+            f1 = (n11+n10)/len_haps_d
+            f2 = (n11+n01)/len_haps_d
             D = f11 - f1*f2
             Ds2 = (thetas*D)
             Ds2 = Ds2 * Ds2

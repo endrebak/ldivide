@@ -43,10 +43,13 @@ wildcard_constraints:
 
 window_size = 5000
 
+f = "{prefix}/1kg/local_minima/{population}/{chromosome}.pq"
+
 rule all:
     input:
         # expand("{prefix}/1kg/{chromosome}.vcf.gz", prefix=prefix, chromosome=chromosomes),
         # expand("{prefix}/1kg/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop),
         # expand("{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
-        expand("{prefix}/1kg/vector/{population}/{chromosome}.pq", prefix=prefix, chromosome=chromosomes, population=pop)
+        expand(f, prefix=prefix, chromosome=chromosomes, population=pop)
+        # expand("{prefix}/1kg/vector/{population}/{chromosome}.pq", prefix=prefix, chromosome=chromosomes, population=pop)
 

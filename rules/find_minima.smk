@@ -82,38 +82,53 @@ gets you close to desired number of breakpoints."""
         pd.DataFrame({"Minima": minima}).to_parquet(output[0])
 
 
-
-
-rule find_local_minima:
+rule compute_rowvectors:
     input:
-        minima = "{prefix}/1kg/minima/{population}/{chromosome}.pq",
         haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
         theta = "{prefix}/theta/{chromosome}/{population}.txt",
-        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq",
+        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq"
     output:
-        "{prefix}/1kg/local_minima/{population}/{chromosome}.pq"
+        "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq"
     run:
         theta = float(open(input.theta).readline().strip())
         haplos = pd.read_parquet(input.haplos)
-        minima = pd.read_parquet(input.minima)
         autocovars = pd.read_parquet(input.autocorr).squeeze().values
 
-        a = minima.squeeze().values
-        diff_last = len(autocovars) - a[-1]
-        shifted = a + np.r_[(np.diff(a)/2).astype(int), diff_last]
-        midpoints = np.r_[0, shifted]
 
-        new_breakpoints = []
 
-        for i, (m1, m2) in enumerate(zip(midpoints, midpoints[1:])):
-            print(wildcards.chromosome, m1, m2, i, i/len(midpoints))
-            haps = haplos.iloc[m1:m2].values
-            auto = autocovars[m1:m2]
 
-            new_breakpoint = find_local_minima(haps, auto, theta)
-            new_breakpoints.append(new_breakpoint)
-            print("Old minima", a[i], "New minima", new_breakpoint)
+# rule find_local_minima:
+#     input:
+#         minima = "{prefix}/1kg/minima/{population}/{chromosome}.pq",
+#         haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
+#         theta = "{prefix}/theta/{chromosome}/{population}.txt",
+#         autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq",
+#     output:
+#         "{prefix}/1kg/local_minima/{population}/{chromosome}.pq"
+#     run:
+#         theta = float(open(input.theta).readline().strip())
+#         haplos = pd.read_parquet(input.haplos)
+#         minima = pd.read_parquet(input.minima)
+#         autocovars = pd.read_parquet(input.autocorr).squeeze().values
 
-        new_breakpoints = np.array(new_breakpoints)
+#         a = minima.squeeze().values
+#         diff_last = len(autocovars) - a[-1]
+#         shifted = a + np.r_[(np.diff(a)/2).astype(int), diff_last]
+#         midpoints = np.r_[0, shifted]
 
-        pd.DataFrame({"LocalMinima": new_breakpoints, "WindowMinima": minima}).to_csv(output[0])
+#         new_breakpoints = []
+
+#         for i, (m1, m2) in enumerate(zip(midpoints, midpoints[1:])):
+#             print("-----" * 5)
+#             print(np.round(i/len(midpoints), 3))
+#             haps = haplos.iloc[m1:m2].values
+#             auto = autocovars[m1:m2]
+
+#             new_breakpoint = find_local_minima(haps, auto, theta) + m1
+#             new_breakpoints.append(new_breakpoint)
+#             print("Distance from border:", min(abs(new_breakpoint - m2), abs(new_breakpoint - m1)))
+#             print("Distance from old breakpoint:", abs(new_breakpoint - a[i]))
+
+#         new_breakpoints = np.array(new_breakpoints)
+
+#         pd.DataFrame({"Breakpoints": new_breakpoints}).to_parquet(output[0])

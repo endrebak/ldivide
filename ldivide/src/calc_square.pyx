@@ -13,35 +13,45 @@ cimport cython
 @cython.wraparound(False)
 @cython.initializedcheck(False)
 @cython.cdivision(True)
-cpdef find_local_minima(haplos, double [::1] autocovars, double theta):
+cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_size):
 
     cdef:
-        int mid_x, mid1, mid2, i, j, k, len_haps, width_haps, n11, n10, n01
-        double rowsum, f11, f1, f2, Ds2, rsq, ai, aj, len_haps_d
-        int8_t[:, :] haps_view
-        double[::1] colvec_view
-        double[::1] rowvec_view
-        int32_t[::1] new_breakpoints
+        int i, j, j1, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
+        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj, rsq
 
-    haps_view = haplos
-    len_haps = len(haplos)
-    width_haps = haplos.shape[1]
+    half_window_size = int(window_size / 2)
+    haps = haplos
+
+    records = []
+
+    len_g1_int = haps.shape[1]
+    len_g1 = float(haps.shape[1])
+    len_haps = len(haps)
+
+    assert len_haps >= 2 * half_window_size
+
     thetas = (1-theta)*(1-theta)
-    colvec = np.zeros(len_haps)
-    colvec_view = colvec
-    len_haps_d = len_haps
 
-    rowvec = np.zeros(len_haps)
-    rowvec_view = rowvec
+    cdef int8_t[:, :] haps_view
+    cdef double[::1] outvec_view
 
-    for i in range(0, len_haps):
-        for j in range(i + 1, len_haps):
+    haps_view = haps
+    outvec = np.zeros(len_haps)
+    outvec_view = outvec
+
+    for i in range(0, half_window_size):
+
+        for j in range(i):
+
+            j = i - j
+
+            if j < 0:
+                continue
 
             ai = autocovars[i]
             aj = autocovars[j]
-
             n11, n01, n10 = 0, 0, 0
-            for k in range(width_haps):
+            for k in range(len_g1_int):
                 if haps_view[i][k] == 1 and haps_view[j][k] == 1:
                     n11 += 1
                 elif haps_view[i][k] == 0 and haps_view[j][k] == 1:
@@ -49,27 +59,137 @@ cpdef find_local_minima(haplos, double [::1] autocovars, double theta):
                 elif haps_view[i][k] == 1 and haps_view[j][k] == 0:
                     n10 += 1
 
-            f11 = n11/len_haps_d
-            f1 = (n11+n10)/len_haps_d
-            f2 = (n11+n01)/len_haps_d
+            f11 = n11/len_g1
+            f1 = (n11+n10)/len_g1
+            f2 = (n11+n01)/len_g1
             D = f11 - f1*f2
             Ds2 = (thetas*D)
             Ds2 = Ds2 * Ds2
             rsq = Ds2 / (ai * aj)
 
-            rowvec_view[i] += rsq
-            colvec_view[j] += rsq
+            outvec_view[i] += rsq
 
-        if i > 1:
-            rowvec_view[i] = rowvec_view[i] + rowvec_view[i-1] - colvec_view[i-1]
 
-    for i in range(0, len_haps):
-        if i > 0:
-            rowvec_view[i] = rowvec_view[i] / (i * (len_haps - i))
-        else:
-            rowvec_view[i] = rowvec_view[i] / len_haps
+    for i in range(half_window_size, len_haps):
 
-    breakpoint = np.argmin(rowvec_view)
+        for j in range(half_window_size):
 
-    return breakpoint
+            j = i - j
 
+            ai = autocovars[i]
+            aj = autocovars[j]
+
+            n11, n01, n10 = 0, 0, 0
+            for k in range(len_g1_int):
+                if haps_view[i][k] == 1 and haps_view[j][k] == 1:
+                    n11 += 1
+                elif haps_view[i][k] == 0 and haps_view[j][k] == 1:
+                    n01 += 1
+                elif haps_view[i][k] == 1 and haps_view[j][k] == 0:
+                    n10 += 1
+
+            f11 = n11/len_g1
+            f1 = (n11+n10)/len_g1
+            f2 = (n11+n01)/len_g1
+            D = f11 - f1*f2
+            Ds2 = (thetas*D)
+            Ds2 = Ds2 * Ds2
+            rsq = Ds2 / (ai * aj)
+
+            outvec_view[i] += rsq
+
+
+    return outvec
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
+cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_size):
+
+    cdef:
+        int i, j, j1, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
+        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj, rsq
+
+    half_window_size = int(window_size / 2)
+    haps = haplos
+
+    records = []
+
+    len_g1_int = haps.shape[1]
+    len_g1 = float(haps.shape[1])
+    len_haps = len(haps)
+
+    assert len_haps >= 2 * half_window_size
+
+    thetas = (1-theta)*(1-theta)
+
+    cdef int8_t[:, :] haps_view
+    cdef double[::1] outvec_view
+
+    haps_view = haps
+    outvec = np.zeros(len_haps)
+    outvec_view = outvec
+
+    for i in range(0, len_haps - half_window_size):
+
+        for j in range(half_window_size):
+
+            j = i + j
+
+            ai = autocovars[i]
+            aj = autocovars[j]
+            n11, n01, n10 = 0, 0, 0
+            for k in range(len_g1_int):
+                if haps_view[i][k] == 1 and haps_view[j][k] == 1:
+                    n11 += 1
+                elif haps_view[i][k] == 0 and haps_view[j][k] == 1:
+                    n01 += 1
+                elif haps_view[i][k] == 1 and haps_view[j][k] == 0:
+                    n10 += 1
+
+            f11 = n11/len_g1
+            f1 = (n11+n10)/len_g1
+            f2 = (n11+n01)/len_g1
+            D = f11 - f1*f2
+            Ds2 = (thetas*D)
+            Ds2 = Ds2 * Ds2
+            rsq = Ds2 / (ai * aj)
+
+            outvec_view[i] += rsq
+
+
+    for i in range(len_haps - half_window_size, len_haps):
+
+        for j in range(half_window_size):
+
+            j = i + j
+
+            if j > len_haps:
+                continue
+
+            ai = autocovars[i]
+            aj = autocovars[j]
+
+            n11, n01, n10 = 0, 0, 0
+            for k in range(len_g1_int):
+                if haps_view[i][k] == 1 and haps_view[j][k] == 1:
+                    n11 += 1
+                elif haps_view[i][k] == 0 and haps_view[j][k] == 1:
+                    n01 += 1
+                elif haps_view[i][k] == 1 and haps_view[j][k] == 0:
+                    n10 += 1
+
+            f11 = n11/len_g1
+            f1 = (n11+n10)/len_g1
+            f2 = (n11+n01)/len_g1
+            D = f11 - f1*f2
+            Ds2 = (thetas*D)
+            Ds2 = Ds2 * Ds2
+            rsq = Ds2 / (ai * aj)
+
+            outvec_view[i] += rsq
+
+    return outvec

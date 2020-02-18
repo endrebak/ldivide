@@ -46,7 +46,7 @@ cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_
             j = i - j
 
             if j < 0:
-                continue
+                break
 
             ai = autocovars[i]
             aj = autocovars[j]
@@ -168,7 +168,7 @@ cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_
             j = i + j
 
             if j > len_haps:
-                continue
+                break
 
             ai = autocovars[i]
             aj = autocovars[j]

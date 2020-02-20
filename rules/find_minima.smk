@@ -2,7 +2,7 @@ import math
 import bisect
 from time import time
 
-from ldivide.src.calc_square import find_local_minima
+from ldivide.src.calc_square import calc_rowvec, calc_colvec, calc_final
 
 import scipy.ndimage.filters as filters
 import scipy.signal as sig
@@ -82,7 +82,7 @@ gets you close to desired number of breakpoints."""
         pd.DataFrame({"Minima": minima}).to_parquet(output[0])
 
 
-rule compute_rowvectors:
+rule compute_row:
     input:
         haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
         theta = "{prefix}/theta/{chromosome}/{population}.txt",
@@ -93,6 +93,76 @@ rule compute_rowvectors:
         theta = float(open(input.theta).readline().strip())
         haplos = pd.read_parquet(input.haplos)
         autocovars = pd.read_parquet(input.autocorr).squeeze().values
+
+        result = calc_rowvec(haplos.values, autocovars, theta, 5000)
+        result = pd.Series(result)
+        result = result.to_frame()
+        result.columns = result.columns.astype(str)
+        result.to_parquet(output[0])
+
+
+rule compute_col:
+    input:
+        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
+        theta = "{prefix}/theta/{chromosome}/{population}.txt",
+        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq"
+    output:
+        "{prefix}/1kg/colvectors/{population}/{chromosome}.pq"
+    run:
+        theta = float(open(input.theta).readline().strip())
+        haplos = pd.read_parquet(input.haplos)
+        autocovars = pd.read_parquet(input.autocorr).squeeze().values
+
+        result = calc_colvec(haplos.values, autocovars, theta, 5000)
+        result = pd.Series(result)
+        print(result)
+        result = result.to_frame()
+        result.columns = result.columns.astype(str)
+        print(result)
+        result.to_parquet(output[0])
+
+
+rule compute_square:
+    input:
+        col = "{prefix}/1kg/colvectors/{population}/{chromosome}.pq",
+        row = "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq",
+    output:
+        "{prefix}/1kg/square/{population}/{chromosome}.pq"
+    run:
+        col = pd.read_parquet(input.col).squeeze()
+        row = pd.read_parquet(input.row).squeeze()
+
+        print(row.isnull().sum())
+        # print(col.isnull().sum())
+        final = calc_final(row.values, col.values, 5000)
+
+        df = pd.Series(final).to_frame()
+        print(df)
+        df.columns = df.columns.astype(str)
+        df.to_parquet(output[0])
+
+
+rule normalize_square:
+    input:
+        "{prefix}/1kg/square/{population}/{chromosome}.pq"
+    output:
+        "{prefix}/1kg/normalized_square/{population}/{chromosome}.pq"
+    run:
+        s = pd.read_parquet(input[0]).squeeze()
+
+        l = len(s)
+        n = np.ones(l) * ((2499 * 2498)/2)
+        flank_n = (np.arange(2, 2501) * (np.arange(2, 2501) - 1))/2
+        n[:2499] = flank_n
+        n[len(n)-2499:] = flank_n[::-1]
+
+        print(s)
+        s = s / n
+        print(s)
+        df = s.to_frame()
+        df.columns = df.columns.astype(str)
+        df.to_parquet(output[0])
+
 
 
 

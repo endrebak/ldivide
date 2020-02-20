@@ -16,8 +16,8 @@ cimport cython
 cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_size):
 
     cdef:
-        int i, j, j1, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
-        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj, rsq
+        int i, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
+        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, ai, aj, rsq
 
     half_window_size = int(window_size / 2)
     haps = haplos
@@ -41,7 +41,7 @@ cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_
 
     for i in range(0, half_window_size):
 
-        for j in range(i):
+        for j in range(half_window_size):
 
             j = i - j
 
@@ -71,6 +71,9 @@ cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_
 
 
     for i in range(half_window_size, len_haps):
+
+        if not (i % 10000):
+            print(np.round(i/float(len_haps), 3) * 100)
 
         for j in range(half_window_size):
 
@@ -110,8 +113,8 @@ cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_
 cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_size):
 
     cdef:
-        int i, j, j1, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
-        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, aj1, aj, rsq
+        int i, j, k, pos1, pos2, len_haps, n11, n10, n01, len_g1_int, half_window_size
+        double len_g1, f11, f1, f2, Ds2, D, nind, thetas, ai, aj, rsq
 
     half_window_size = int(window_size / 2)
     haps = haplos
@@ -134,6 +137,9 @@ cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_
     outvec_view = outvec
 
     for i in range(0, len_haps - half_window_size):
+
+        if not (i % 10000):
+            print(np.round(i/float(len_haps), 3) * 100)
 
         for j in range(half_window_size):
 
@@ -167,12 +173,11 @@ cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_
 
             j = i + j
 
-            if j > len_haps:
+            if j >= len_haps:
                 break
 
             ai = autocovars[i]
             aj = autocovars[j]
-
             n11, n01, n10 = 0, 0, 0
             for k in range(len_g1_int):
                 if haps_view[i][k] == 1 and haps_view[j][k] == 1:
@@ -191,5 +196,33 @@ cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_
             rsq = Ds2 / (ai * aj)
 
             outvec_view[i] += rsq
+
+    return outvec
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
+cpdef calc_final(const double [::1] rows, const double [::1] cols, int32_t window_size):
+
+    cdef:
+        int i, half_window_size, len_rows
+
+    i = 0
+    half_window_size = int(window_size / 2)
+
+    len_rows = len(rows)
+
+    assert len(rows) == len(cols)
+
+    outvec = np.zeros(len_rows)
+    cdef double[::1] outvec_view
+    outvec_view = outvec
+
+    outvec_view[0] = rows[i]
+
+    for i in range(1, len_rows):
+        outvec_view[i] = outvec_view[i - 1] - cols[i - 1] + rows[i]
 
     return outvec

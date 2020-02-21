@@ -27,13 +27,13 @@ populations = pop_as_list()
 
 variant_prefix = "/mnt/work/endrebak/1kg"
 sample_info = "data/sample_info.tsv"
+chromosomes = ["chr" + str(i) for i in range(1, 23)]
 
 for rule in glob("rules/*.smk"):
     include: rule
 
 prefix = "/mnt/work/endrebak/ldivide/hg19"
 
-chromosomes = ["chr" + str(i) for i in range(1, 23)]
 
 to_regex = lambda vs: "|".join([str(v) for v in vs])
 
@@ -47,6 +47,8 @@ f = "{prefix}/1kg/local_minima/{population}/{chromosome}.pq"
 col = "{prefix}/1kg/colvectors/{population}/{chromosome}.pq"
 row = "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq"
 f = "{prefix}/1kg/normalized_square/{population}/{chromosome}.pq"
+f = "{prefix}/1kg/local_minima/{population}/{chromosome}.tsv"
+f = "{prefix}/1kg/local_minima/{population}/genome.tsv"
 
 rule all:
     input:

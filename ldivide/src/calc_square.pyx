@@ -72,8 +72,8 @@ cpdef calc_colvec(haplos, double [::1] autocovars, double theta, int32_t window_
 
     for i in range(half_window_size, len_haps):
 
-        if not (i % 10000):
-            print(np.round(i/float(len_haps), 3) * 100)
+        # if not (i % 10000):
+        #     print(np.round(i/float(len_haps), 3) * 100)
 
         for j in range(half_window_size):
 
@@ -138,8 +138,8 @@ cpdef calc_rowvec(haplos, double [::1] autocovars, double theta, int32_t window_
 
     for i in range(0, len_haps - half_window_size):
 
-        if not (i % 10000):
-            print(np.round(i/float(len_haps), 3) * 100)
+        # if not (i % 10000):
+        #     print(np.round(i/float(len_haps), 3) * 100)
 
         for j in range(half_window_size):
 

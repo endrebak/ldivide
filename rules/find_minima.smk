@@ -2,7 +2,6 @@ import math
 import bisect
 from time import time
 
-from ldivide.src.calc_square import calc_rowvec, calc_colvec, calc_final
 
 import scipy.ndimage.filters as filters
 import scipy.signal as sig
@@ -23,153 +22,71 @@ def apply_filter_get_minima(vector, width):
     return minima_a
 
 
+
 rule find_minima:
     input:
-        "{prefix}/1kg/vector/{population}/{chromosome}.pq"
+        diag = "{prefix}/1kg/vector/{population}/{window_size}/{chromosome}.pq",
+        other = "{prefix}/1kg/normalized_square/{population}/{window_size}/{chromosome}.pq"
     output:
-        "{prefix}/1kg/minima/{population}/{chromosome}.pq"
+        statistics = "{prefix}/1kg/minima/{population}/{window_size}/{chromosome}.tsv",
+        minima_diag = "{prefix}/1kg/minima/{population}/{window_size}/diag/{chromosome}.tsv",
+        minima_other = "{prefix}/1kg/minima/{population}/{window_size}/other/{chromosome}.tsv"
     run:
-        f = input[0]
-        vector = pd.read_parquet(f).squeeze()
-        vector.name = "Value"
+        f = input.diag
+        f2 = input.other
 
-        n_snps_between_breakpoints = 5000
+        v = pd.read_parquet(f).squeeze()
+        v2 = pd.read_parquet(f2).squeeze()
 
-        n_bpoints = int(math.ceil( len(vector) / n_snps_between_breakpoints - 1 ))
+        rowdicts = []
+        minima_diag = []
+        minima_other = []
 
-        """First do linear search to find max filter width, then do binary search to find filter width that
-gets you close to desired number of breakpoints."""
+        for width in range(0, 30001, 1000):
+            r = apply_filter_get_minima(v, width)
+            r2 = apply_filter_get_minima(v2, width)
 
-        # nb_minima = int(1e6)
-        search_val = 100
-        last_search_val = 50
-        while True:
-            print(f"Trying a search width of {search_val}", end="\n")
-            minima = apply_filter_get_minima(vector, search_val)
-            if len(minima) <= n_bpoints:
-                print(f"Found {len(minima)} minima, done with initial search.")
-                break
+            df = pd.Series(r).to_frame()
+            df.insert(df.shape[1], "Type", "diagonal")
+            df.insert(df.shape[1], "Width", width)
 
-            print(f"Found {len(minima)} minima, searching for something less than {n_bpoints} in initial search.")
-            last_search_val = search_val
-            search_val *= 2
+            df2 = pd.Series(r2).to_frame()
+            df2.insert(df2.shape[1], "Type", "other")
+            df2.insert(df2.shape[1], "Width", width)
+            print(f"----{width}----")
+            print(len(r))
+            print(len(r2))
+            lr = len(r)
+            lr2 = len(r2)
+            rowdicts.append({"Chromosome": wildcards.chromosome, "Width": width, "Minima": lr, "Type": "diagonal"})
+            rowdicts.append({"Chromosome": wildcards.chromosome, "Width": width, "Minima": lr2, "Type": "other"})
 
-        if not len(minima) == n_bpoints:
-            last_nb_minima = -1000
-            lo = last_search_val
-            hi = search_val
+            minima_dimag.append(df)
+            minima_other.append(df2)
 
-            while lo <= hi:
-                mid = (lo + hi) // 2
+        # diag_minima = r
+        # other_minima = r2
 
-                print("---" * 10)
-                print(f"Trying a search width of {mid}", end="\n")
-                minima = apply_filter_get_minima(vector, mid)
-                nb_minima = len(minima)
+        # diag = pd.DataFrame({"Chromosome": wildcards.chromosome, "Minima": r, "Type": "diagonal", "Width": width})
+        # other = pd.DataFrame({"Chromosome": wildcards.chromosome, "Minima": r2, "Type": "other", "Width": width})
+        # df = pd.concat([diag, other])
+        df = pd.DataFrame(rowdicts)
 
-                print(f"Found {nb_minima} minima, searching for something in ({n_bpoints - 10}, {n_bpoints + 10}).")
+        df.to_csv(output.statistics, sep="\t", index=False)
 
-                if abs(nb_minima - n_bpoints) <= 10:
-                    break
+        diag = pd.concat(minima_diag)
+        other = pd.concat(minima_other)
 
-                if nb_minima > n_bpoints:
-                    lo = mid + 1
-                elif n_bpoints > nb_minima:
-                    hi = mid - 1
-                else:
-                    break
-
-        pd.DataFrame({"Minima": minima}).to_parquet(output[0])
-
-
-rule compute_row:
-    input:
-        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
-        theta = "{prefix}/theta/{chromosome}/{population}.txt",
-        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq"
-    output:
-        "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq"
-    run:
-        theta = float(open(input.theta).readline().strip())
-        haplos = pd.read_parquet(input.haplos)
-        autocovars = pd.read_parquet(input.autocorr).squeeze().values
-
-        result = calc_rowvec(haplos.values, autocovars, theta, 5000)
-        result = pd.Series(result)
-        result = result.to_frame()
-        result.columns = result.columns.astype(str)
-        result.to_parquet(output[0])
-
-
-rule compute_col:
-    input:
-        haplos = "{prefix}/1kg/{population}/{chromosome}.pq",
-        theta = "{prefix}/theta/{chromosome}/{population}.txt",
-        autocorr = "{prefix}/1kg/autocorr/{population}/{chromosome}.pq"
-    output:
-        "{prefix}/1kg/colvectors/{population}/{chromosome}.pq"
-    run:
-        theta = float(open(input.theta).readline().strip())
-        haplos = pd.read_parquet(input.haplos)
-        autocovars = pd.read_parquet(input.autocorr).squeeze().values
-
-        result = calc_colvec(haplos.values, autocovars, theta, 5000)
-        result = pd.Series(result)
-        print(result)
-        result = result.to_frame()
-        result.columns = result.columns.astype(str)
-        print(result)
-        result.to_parquet(output[0])
-
-
-rule compute_square:
-    input:
-        col = "{prefix}/1kg/colvectors/{population}/{chromosome}.pq",
-        row = "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq",
-    output:
-        "{prefix}/1kg/square/{population}/{chromosome}.pq"
-    run:
-        col = pd.read_parquet(input.col).squeeze()
-        row = pd.read_parquet(input.row).squeeze()
-
-        print(row.isnull().sum())
-        # print(col.isnull().sum())
-        final = calc_final(row.values, col.values, 5000)
-
-        df = pd.Series(final).to_frame()
-        print(df)
-        df.columns = df.columns.astype(str)
-        df.to_parquet(output[0])
-
-
-rule normalize_square:
-    input:
-        "{prefix}/1kg/square/{population}/{chromosome}.pq"
-    output:
-        "{prefix}/1kg/normalized_square/{population}/{chromosome}.pq"
-    run:
-        s = pd.read_parquet(input[0]).squeeze()
-
-        l = len(s)
-        n = np.ones(l) * ((2499 * 2498)/2)
-        flank_n = (np.arange(2, 2501) * (np.arange(2, 2501) - 1))/2
-        n[:2499] = flank_n
-        n[len(n)-2499:] = flank_n[::-1]
-
-        print(s)
-        s = s / n
-        print(s)
-        df = s.to_frame()
-        df.columns = df.columns.astype(str)
-        df.to_parquet(output[0])
+        diag.to_csv(output.minima_diag, sep="\t", index=False)
+        other.to_csv(output.minima_other, sep="\t", index=False)
 
 
 rule find_local_minima:
     input:
-        minima = "{prefix}/1kg/minima/{population}/{chromosome}.pq",
-        vector = "{prefix}/1kg/normalized_square/{population}/{chromosome}.pq"
+        minima = "{prefix}/1kg/minima/{population}/{window_size}/{chromosome}.pq",
+        vector = "{prefix}/1kg/normalized_square/{population}/{window_size}/{chromosome}.pq"
     output:
-        "{prefix}/1kg/local_minima/{population}/{chromosome}.tsv"
+        "{prefix}/1kg/local_minima/{population}/{window_size}/{chromosome}.tsv"
     run:
         vector = pd.read_parquet(input.vector).squeeze()
         v = vector.values
@@ -213,34 +130,34 @@ rule find_local_minima:
         new_breakpoints.to_csv(output[0], sep="\t", index=False)
 
 
-rule collect_minima:
-    input:
-        expand("{{prefix}}/1kg/local_minima/{{population}}/{chromosome}.tsv", chromosome=chromosomes)
-    output:
-        "{prefix}/1kg/local_minima/{population}/genome.tsv"
-    run:
-        df = pd.concat([pd.read_table(f) for f in input])
-        print("df.median()")
-        print(df.median())
-        print(("df[df.BorderDistance > df.OldBreakpointDistance].median()"))
-        print((df.BorderDistance > df.OldBreakpointDistance).sum())
-        print(df[df.BorderDistance > df.OldBreakpointDistance].median())
-        print(("df[df.BorderDistance < df.OldBreakpointDistance].median()"))
-        print((df.BorderDistance < df.OldBreakpointDistance).sum())
-        print(df[df.BorderDistance < df.OldBreakpointDistance].median())
-        print("df.mean()")
-        print(df.mean())
-        print(("df[df.BorderDistance > df.OldBreakpointDistance].mean()"))
-        print((df.BorderDistance > df.OldBreakpointDistance).sum())
-        print(df[df.BorderDistance > df.OldBreakpointDistance].mean())
-        print(("df[df.BorderDistance < df.OldBreakpointDistance].mean()"))
-        print((df.BorderDistance < df.OldBreakpointDistance).sum())
-        print(df[df.BorderDistance < df.OldBreakpointDistance].mean())
-        # print("df.mean()")
-        # print(df.mean())
-        # print("df.min()")
-        # print(df.min())
-        # print("df.max()")
-        # print(df.max())
-        df.to_csv(output[0], sep="\t", index=False)
+# rule collect_minima:
+#     input:
+#         expand("{{prefix}}/1kg/local_minima/{{population}}/{chromosome}.tsv", chromosome=chromosomes)
+#     output:
+#         "{prefix}/1kg/local_minima/{population}/genome.tsv"
+#     run:
+#         df = pd.concat([pd.read_table(f) for f in input])
+#         print("df.median()")
+#         print(df.median())
+#         print(("df[df.BorderDistance > df.OldBreakpointDistance].median()"))
+#         print((df.BorderDistance > df.OldBreakpointDistance).sum())
+#         print(df[df.BorderDistance > df.OldBreakpointDistance].median())
+#         print(("df[df.BorderDistance < df.OldBreakpointDistance].median()"))
+#         print((df.BorderDistance < df.OldBreakpointDistance).sum())
+#         print(df[df.BorderDistance < df.OldBreakpointDistance].median())
+#         print("df.mean()")
+#         print(df.mean())
+#         print(("df[df.BorderDistance > df.OldBreakpointDistance].mean()"))
+#         print((df.BorderDistance > df.OldBreakpointDistance).sum())
+#         print(df[df.BorderDistance > df.OldBreakpointDistance].mean())
+#         print(("df[df.BorderDistance < df.OldBreakpointDistance].mean()"))
+#         print((df.BorderDistance < df.OldBreakpointDistance).sum())
+#         print(df[df.BorderDistance < df.OldBreakpointDistance].mean())
+#         # print("df.mean()")
+#         # print(df.mean())
+#         # print("df.min()")
+#         # print(df.min())
+#         # print("df.max()")
+#         # print(df.max())
+#         df.to_csv(output[0], sep="\t", index=False)
 

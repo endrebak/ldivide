@@ -61,15 +61,9 @@ rule find_minima:
             rowdicts.append({"Chromosome": wildcards.chromosome, "Width": width, "Minima": lr, "Type": "diagonal"})
             rowdicts.append({"Chromosome": wildcards.chromosome, "Width": width, "Minima": lr2, "Type": "other"})
 
-            minima_dimag.append(df)
+            minima_diag.append(df)
             minima_other.append(df2)
 
-        # diag_minima = r
-        # other_minima = r2
-
-        # diag = pd.DataFrame({"Chromosome": wildcards.chromosome, "Minima": r, "Type": "diagonal", "Width": width})
-        # other = pd.DataFrame({"Chromosome": wildcards.chromosome, "Minima": r2, "Type": "other", "Width": width})
-        # df = pd.concat([diag, other])
         df = pd.DataFrame(rowdicts)
 
         df.to_csv(output.statistics, sep="\t", index=False)

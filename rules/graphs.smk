@@ -26,4 +26,18 @@ rule add_position_to_other_vectors:
         v.to_parquet(output[0])
 
 
+rule split_chromosomes:
+    input:
+        "data/fourier_ls_{pop}.bed"
+    output:
+        expand("data/fourier_ls_{{pop}}_{chromosome}.bed", chromosome=chromosomes)
+    run:
+        outpath_template = "data/fourier_ls_{pop}_{chromosome}.bed"
+
+        gr = pr.read_bed(input[0])
+
+        for c, cdf in gr:
+            outpath = outpath_template.format(pop=wildcards.pop, chromosome=c)
+            cdf.to_csv(outpath, sep="\t", index=False)
+
 # rule graph_chromosome

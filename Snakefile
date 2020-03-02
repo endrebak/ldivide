@@ -31,10 +31,11 @@ variant_prefix = "/mnt/work/endrebak/1kg"
 sample_info = "data/sample_info.tsv"
 chromosomes = ["chr" + str(i) for i in range(1, 23)]
 
+prefix = "/mnt/work/endrebak/ldivide/hg19"
+
 for rule in glob("rules/*.smk"):
     include: rule
 
-prefix = "/mnt/work/endrebak/ldivide/hg19"
 
 to_regex = lambda vs: "|".join([str(v) for v in vs])
 
@@ -49,15 +50,22 @@ row = "{prefix}/1kg/rowvectors/{population}/{chromosome}.pq"
 f = "{prefix}/1kg/normalized_square/{population}/{chromosome}.pq"
 f = "{prefix}/1kg/local_minima/{population}/{chromosome}.tsv"
 f = "{prefix}/1kg/local_minima/{population}/genome.tsv"
-f = "{prefix}/1kg/minima/{population}/{window_size}/{chromosome}.tsv"
+# f = "{prefix}/1kg/local_minima/{population}/genome.tsv"
 
+# f = "{prefix}/1kg/minima/{population}/{window_size}/{chromosome}.tsv"
+
+
+f = f"{prefix}/1kg/vector_summary/summary.txt"
+
+# f = "{prefix}/1kg/vector_summary/{vector_type}/{population}/{window_size}/{chromosome}.txt"
 
 rule all:
     input:
+        f
         # expand("{prefix}/1kg/{chromosome}.vcf.gz", prefix=prefix, chromosome=chromosomes),
         # expand("{prefix}/1kg/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop),
         # expand("{prefix}/1kg/autocorr/{population}/{chromosome}.tsv.gz", prefix=prefix, chromosome=chromosomes, population=pop)
-        expand(f, prefix=prefix, chromosome=chromosomes, population=pop, window_size=window_sizes),
+        # expand(f, prefix=prefix, chromosome=chromosomes, population=pop, window_size=window_sizes, vector_type="vector normalized_square".split()),
         # expand(row, prefix=prefix, chromosome=chromosomes, population=pop),
         # expand(col, prefix=prefix, chromosome=chromosomes, population=pop)
         # expand("{prefix}/1kg/vector/{population}/{chromosome}.pq", prefix=prefix, chromosome=chromosomes, population=pop)
